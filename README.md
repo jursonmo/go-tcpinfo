@@ -7,7 +7,7 @@ This is a small wrapper around the syscall library, so you don't have to mess ar
 ## Usage
 
 ```go
-tcpInfo, err := tcpinfo.GetsockoptTCPInfo(&conn)
+tcpInfo, err := tcpinfo.GetTCPInfo(&conn)
 if err != nil {
     panic(err)
 }
@@ -19,9 +19,11 @@ if err != nil {
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"sync"
 
@@ -64,7 +66,8 @@ func client() {
 		panic(err)
 	}
 
-	tcpInfo, err := tcpinfo.GetsockoptTCPInfo(conn.(*net.TCPConn))
+	//tcpInfo, err := tcpinfo.GetsockoptTCPInfo(conn.(*net.TCPConn))
+	tcpInfo, err := tcpinfo.GetTCPInfo(conn)
 	if err != nil {
 		panic(err)
 	}
@@ -77,7 +80,64 @@ func main() {
 	go server(&wg)
 	wg.Wait()
 	client()
+	
+	//tls.Conn test
+	wg.Add(1)
+	go tlsServer(&wg)
+	wg.Wait()
+	tlsClient()
 }
 
+func tlsServer(wg *sync.WaitGroup) {
+	cer, err := tls.LoadX509KeyPair("server.crt", "server.key")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+	ln, err := tls.Listen("tcp", ":8443", config)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer ln.Close()
+
+	wg.Done()
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		go handleConn(conn)
+	}
+}
+
+func tlsClient() {
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	conn, err := tls.Dial("tcp", "127.0.0.1:8443", conf)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer conn.Close()
+
+	n, err := conn.Write([]byte("hello\n"))
+	if err != nil {
+		log.Println(n, err)
+		return
+	}
+
+	tcpInfo, err := tcpinfo.GetTCPInfo(conn)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+v\n", tcpInfo)
+}
 
 ```
