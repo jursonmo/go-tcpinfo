@@ -1,3 +1,3 @@
-module github.com/brucespang/go-tcpinfo
+module github.com/jursonmo/go-tcpinfo
 
 go 1.14
