@@ -1,3 +1,3 @@
 module github.com/jursonmo/go-tcpinfo
 
-go 1.14
+go 1.18
