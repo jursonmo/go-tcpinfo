@@ -25,7 +25,7 @@ func GetTCPInfo(conn net.Conn) (*TCPInfo, error) {
 	var err error
 	switch t := conn.(type) {
 	case *net.TCPConn:
-		rawConn, err = conn.(*net.TCPConn).SyscallConn()
+		rawConn, err = t.SyscallConn()
 	default:
 		return nil, fmt.Errorf("unsupport conn type %+v", t)
 	}
