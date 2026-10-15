@@ -4,8 +4,6 @@
 package tcpinfo
 
 import (
-	"crypto/tls"
-	"errors"
 	"fmt"
 	"net"
 	"syscall"
@@ -14,31 +12,20 @@ import (
 
 type TCPInfo syscall.TCPInfo
 
+type tlsConn interface {
+	NetConn() net.Conn
+}
+
 // 支持 net.tcpConn, tls.Conn 底层是net.TCPConn
 func GetTCPInfo(conn net.Conn) (*TCPInfo, error) {
+	if t, ok := conn.(tlsConn); ok {
+		conn = t.NetConn()
+	}
 	var rawConn syscall.RawConn
 	var err error
 	switch t := conn.(type) {
 	case *net.TCPConn:
 		rawConn, err = conn.(*net.TCPConn).SyscallConn()
-	case *tls.Conn:
-		///usr/local/go/src/crypto/tls/conn.go
-		/*
-			type Conn struct {
-				// constant
-				conn    net.Conn
-				....
-			}
-		*/
-		type tc struct {
-			underConn net.Conn
-		}
-		tconn := (*tc)(unsafe.Pointer(conn.(*tls.Conn)))
-		if tcpConn, ok := tconn.underConn.(*net.TCPConn); ok {
-			rawConn, err = tcpConn.SyscallConn()
-		} else {
-			return nil, errors.New("tls under conn is not *net.TCPConn")
-		}
 	default:
 		return nil, fmt.Errorf("unsupport conn type %+v", t)
 	}
