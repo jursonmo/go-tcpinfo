@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package tcpinfo
@@ -13,7 +14,7 @@ import (
 
 type TCPInfo syscall.TCPInfo
 
-//支持 net.tcpConn, tls.Conn 底层是net.TCPConn
+// 支持 net.tcpConn, tls.Conn 底层是net.TCPConn
 func GetTCPInfo(conn net.Conn) (*TCPInfo, error) {
 	var rawConn syscall.RawConn
 	var err error
